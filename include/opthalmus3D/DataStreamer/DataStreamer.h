@@ -5,6 +5,8 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
 #include "csv.hpp"
 
 class DataStreamer {
@@ -16,8 +18,16 @@ class DataStreamer {
         
         struct IMUData {
             double time_stamp;
-            std::vector<float> ang_velocity;
-            std::vector<float> lin_acceleration;
+            Eigen::Vector3d ang_velocity;
+            Eigen::Vector3d lin_acceleration;
+        };
+
+        struct GroundTruthData {
+            double time_stamp;
+            Eigen::Isometry3d transform_RS_R;
+            Eigen::Vector3d velocity_RS_R;
+            Eigen::Vector3d bias_gyroscope_RS_R;
+            Eigen::Vector3d bias_accelerometer_RS_R;                    
         };
 
         DataStreamer();

@@ -7,6 +7,8 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
+#include <Eigen/Dense>
+#include <Eigen/Geometry>
 
 #include "DataStreamer.h"
 
@@ -41,10 +43,10 @@ class EUROCDataStreamer : public DataStreamer {
                 EUROCImageStreamer(std::string path_cam_data);
                 ~EUROCImageStreamer();
                 
-                bool getCurrentImage(Frame *frame);
-                bool getNextImage(Frame *frame);                
+                bool getCurrentImage(Frame &frame);
+                bool getNextImage(Frame &frame);                
             private:
-                IMUData _current_imu_data;
+                Frame _current_frame;
 
                 csv::CSVReader *_reader_cam;
                 csv::CSVReader::iterator _iter_cam;
@@ -59,15 +61,33 @@ class EUROCDataStreamer : public DataStreamer {
                 EUROCIMUStreamer(std::string path_imu_data);
                 ~EUROCIMUStreamer();
 
-                bool getCurrentIMUData(IMUData *imu_data);
-                bool getNextIMUData(IMUData *imu_data);
+                bool getCurrentIMUData(IMUData &imu_data);
+                bool getNextIMUData(IMUData &imu_data);
             private:
-                Frame _current_frame;
+                IMUData _current_imu_data;
 
-                csv::CSVReader *_reader_cam;
-                csv::CSVReader::iterator _iter_cam;
+                csv::CSVReader *_reader_imu;
+                csv::CSVReader::iterator _iter_imu;
 
                 std::string _path_imu_data;
+
+                double _current_epoch_timestamp;
+        };
+
+        class EUROCGroundTruthStreamer {
+            public:
+                EUROCGroundTruthStreamer(std::string path_ground_truth_data);
+                ~EUROCGroundTruthStreamer();
+
+                bool getCurrentGroundTruthData(GroundTruthData &ground_truth_data);
+                bool getNextGroundTruthData(GroundTruthData &ground_truth_data);
+            private:
+                GroundTruthData _current_ground_truth_data;
+
+                csv::CSVReader *_reader_ground_truth;
+                csv::CSVReader::iterator _iter_ground_truth;
+
+                std::string _path_ground_truth_data;
 
                 double _current_epoch_timestamp;
         };
@@ -77,56 +97,22 @@ class EUROCDataStreamer : public DataStreamer {
 
         // cam_priority restricts access to IMUData that is timestamped beyond the current image streamed
         void setEpochPriorityCamera(bool cam_priority);
-
-        bool loadNextImage();
-        bool getNextImage(Frame* left_frame, Frame* right_frame);
-        // bool getLeftImage(Frame* left_frame);
-        // bool getRightImage(Frame* right_frame);
-
-        bool loadNextIMUData();
-        bool getNextIMUData(IMUData* imu_data);
-
-        std::vector<double> getGroundTruth();
+        
+        bool getCurrentImages(Frame *left_image, Frame *right_image);
+        bool getCurrentGroundTruth(GroundTruthData *ground_truth);
+        bool getNextImages(Frame *left_image, Frame *right_image);
+        bool getNextGroundTruth(GroundTruthData *ground_truth);
 
         double getEpochLimit();
-    private:        
-        void updateCamEpochs();
-
-        struct ImgEpoch {
-            std::string img_name;
-            double timestamp;
-        };
-
-        csv::CSVReader *_reader_ground_truth;
-        csv::CSVReader::iterator _iter_ground_truth;
-
-        csv::CSVReader *_reader_cam_left;
-        csv::CSVReader *_reader_cam_right;
-
-        csv::CSVReader::iterator _iter_cam_left;
-        csv::CSVReader::iterator _iter_cam_right;
+    private:       
+        EUROCImageStreamer _image_streamers[2];
+        EUROCIMUStreamer _imu_streamer;
+        EUROCGroundTruthStreamer _ground_truth_streamer;
 
         std::string _path_dataset;
-        std::string _path_imgs_left;
-        std::string _path_imgs_right;
-
-        double _current_time_stamp_limit;
-
-        double _current_time_stamp_imu;
-        ImgEpoch _epoch_cam_right;
-        ImgEpoch _epoch_cam_left;
-
-        Frame _right_frame;
-        Frame _left_frame;
 
         bool _b_prioritize_cam;
 
-        // IMU stuff
-        csv::CSVReader *_reader_imu_data;
-
-        csv::CSVReader::iterator _iter_imu;
-
-        double _imu_epoch_timestamp;
-        IMUData _imu_data;        
+        double _current_max_timestamp;    
 }; 
 #endif // EUROC_DATA_STREAMER_H
